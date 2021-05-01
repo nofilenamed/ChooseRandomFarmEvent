@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
+using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Events;
 using StardewValley.Locations;
+using StardewValley.TerrainFeatures;
 
 namespace ChooseRandomFarmEvent
 {
@@ -13,10 +16,16 @@ namespace ChooseRandomFarmEvent
         internal List<KeyValuePair<Func<bool>, string>> Conditions { get; set; }
         internal FarmEvent FarmEvent { get; set; }
         internal FarmEvent PersonalFarmEvent { get; set; }
+
         internal string SuccessMessage { get; set; }
         internal string FailureMessage { get; set; }
         internal static List<string> EventTypes { get; } = new List<string>() { "capsule", "meteorite", "wild_animal_attack", "owl_statue", "fairy", "witch", 
             "NPC_child_request", "PC_child_request", "animal_birth" };
+
+        internal Vector2 tile { get; }
+        internal GameLocation location { get; }
+        internal GiantCrop giantCrop { get; set; }
+        private int id { get; set; } = -1;
 
         private static IModHelper Helper;
         private static IMonitor Monitor;
@@ -31,12 +40,29 @@ namespace ChooseRandomFarmEvent
             Name = n;
         }
 
+        // for giant crops
+        internal EventData(string n, int x, int y)
+        {
+            Name = n;
+            tile = new Vector2(x, y);
+            location = Game1.player.currentLocation;
+        }
+
+        // for giant crops with specified crop ID
+        internal EventData(string n, int x, int y, int ID)
+        {
+            Name = n;
+            tile = new Vector2(x, y);
+            location = Game1.player.currentLocation;
+            id = ID;
+        }
+
         internal void SetUp()
         {
             FailureMessage = $"Could not set tonight's event to {Name}: a condition for this event has not been fulfilled, or another event is taking precedence.";
             Conditions = new List<KeyValuePair<Func<bool>, string>>();
             AddCondition(() => !Game1.weddingToday, "there's a wedding today");
-            //Conditions.Add(() => !(Game1.stats.DaysPlayed == 31));
+
             switch (Name)
             {
                 case "capsule":
@@ -121,6 +147,56 @@ namespace ChooseRandomFarmEvent
                     SuccessMessage = "An animal birth event will occur tonight.";
                     break;
 
+                case "giant_crop":
+                    if (tile == null)
+                        break;
+
+                    // players can only specify a crop ID when conditions aren't being enforced
+                    if (id > -1)
+                    {
+                        giantCrop = new GiantCrop(id, new Vector2((int)tile.X - 1, (int)tile.Y - 1));
+                        giantCrop.modData.Add(ModEntry.mod.ModManifest.UniqueID, SDate.Now().ToString());
+                        break;
+                    }
+
+                    // weddings don't prevent giant crops from spawning
+                    Conditions.Clear();
+
+                    // first check whether there's actually a crop there; this will be a hard condition regardless of config
+                    AddCondition(() => location.terrainFeatures.ContainsKey(tile) && location.terrainFeatures[tile] is HoeDirt, 
+                        $"there is no hoe dirt at ({(int)tile.X}, {(int)tile.Y})");
+                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop != null, 
+                        $"there is no crop at ({(int)tile.X}, {(int)tile.Y})");
+                    if (!EnforceEventConditions(out string message))
+                    {
+                        Monitor.Log($"Could not set giant crop spawn for tonight because {message}.", LogLevel.Info);
+                        break;
+                    }
+
+                    SuccessMessage = $"A giant crop will spawn at ({(int)tile.X}, {(int)tile.Y}) tonight.";
+
+                    giantCrop = new GiantCrop((location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest, new Vector2((int)tile.X - 1, (int)tile.Y - 1));
+                    giantCrop.modData.Add(ModEntry.mod.ModManifest.UniqueID, SDate.Now().ToString());
+
+                    if (!Helper.ModRegistry.IsLoaded("spacechase0.moregiantcrops") && !Helper.ModRegistry.IsLoaded("spacechase0.jsonassets"))
+                    {
+                        AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest == 276
+                            || (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest == 190
+                            || (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest == 254, 
+                            "this type of crop cannot be giant");
+                    }
+                    AddCondition(() => location is Farm,
+                        "you are not in a farm location");
+                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).state.Value == 1,
+                        $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not watered");
+                    AddCondition(() => (int)(location.terrainFeatures[tile] as HoeDirt).crop.currentPhase == (location.terrainFeatures[tile] as HoeDirt).crop.phaseDays.Count - 1, 
+                        $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not fully grown");
+                    AddCondition(() => CheckGiantCropSquareForCrops(), 
+                        $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not at the center of a 3x3 square of crops of the same type");
+                    AddCondition(() => CheckGiantCropSquareForCharacters(),
+                        $"there is a character in the way");
+                    break;
+
                 default:
                     break;
 
@@ -141,6 +217,53 @@ namespace ChooseRandomFarmEvent
                 }
             }
             return fulfillConditions;
+        }
+
+        private bool CheckGiantCropSquareForCrops()
+        {
+            //Farm environment;
+            //try { environment = location as Farm; }
+            //catch { return false; }
+
+            GameLocation environment = location;
+                
+            for (int x = (int)tile.X - 1; x <= (int)tile.X + 1; x++)
+            {
+                for (int y = (int)tile.Y - 1; y <= (int)tile.Y + 1; y++)
+                {
+                    Vector2 v = new Vector2(x, y);
+                    if (!environment.isTileHoeDirt(v)
+                        || (environment.terrainFeatures[v] as HoeDirt).crop == null 
+                        || (environment.terrainFeatures[v] as HoeDirt).crop.indexOfHarvest != (environment.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest)
+                    {
+                        return false; ;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private bool CheckGiantCropSquareForCharacters()
+        {
+            for (int x = (int)tile.X - 1; x <= (int)tile.X + 1; x++)
+            {
+                for (int y = (int)tile.Y - 1; y <= (int)tile.Y + 1; y++)
+                {
+                    Vector2 v = new Vector2(x, y);
+
+                    foreach (Farmer farmer in location.farmers)
+                    {
+                        if (farmer.getTileLocation() == v)
+                            return false;
+                    }
+                    foreach (Character character in location.characters)
+                    {
+                        if (character.getTileLocation() == v)
+                            return false;
+                    }
+                }
+            }
+            return true;
         }
 
         private void AddCondition(Func<bool> condition, string failureReason)
