@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using Harmony;
+
+using HarmonyLib;
+
 using Microsoft.Xna.Framework;
+
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
+
 using StardewValley;
 using StardewValley.TerrainFeatures;
 
@@ -51,7 +54,7 @@ namespace ChooseRandomFarmEvent
             helper.Events.GameLoop.DayStarted += OnDayStarted;
             helper.Events.GameLoop.Saving += OnSaving;
 
-            var harmony = HarmonyInstance.Create(this.ModManifest.UniqueID);
+            var harmony = new Harmony(this.ModManifest.UniqueID);
 
             harmony.Patch(
                original: AccessTools.Method(typeof(StardewValley.Utility), nameof(StardewValley.Utility.pickFarmEvent)),
@@ -92,15 +95,14 @@ namespace ChooseRandomFarmEvent
             string eventType = args[0];
             if (!EventData.EventTypes.Contains(eventType))
             {
-                Monitor.Log($"{eventType} is not a valid event type.\n Valid event types: {String.Join(", ", EventData.EventTypes)}", LogLevel.Info);
+                Monitor.Log($"{eventType} is not a valid event type.\n Valid event types: {string.Join(", ", EventData.EventTypes)}", LogLevel.Info);
                 return;
             }
             eventData = new EventData(eventType);
             eventData.SetUp();
-            
+
             if (Config.EnforceEventConditions && !eventData.EnforceEventConditions(out string reason))
-                Monitor.Log($"Under current game conditions, the event \"{eventData.Name}\" will not be able to run tonight because {reason}.\n" +
-                    $"The event will still try to run tonight and check if this condition has changed by the time the players go to bed.", LogLevel.Info);
+                Monitor.Log($"Under current game conditions, the event \"{eventData.Name}\" will not be able to run tonight because {reason}.\n The event will still try to run tonight and check if this condition has changed by the time the players go to bed.", LogLevel.Info);
             else
                 Monitor.Log(eventData.SuccessMessage, LogLevel.Info);
         }
@@ -143,8 +145,7 @@ namespace ChooseRandomFarmEvent
                     return;
                 }
             }
-            if (!int.TryParse(args[0], out int x) || x <= 0 || x >= Game1.currentLocation.Map.DisplayWidth / 64
-                || !int.TryParse(args[1], out int y) || y <= 0 || y >= Game1.currentLocation.Map.DisplayHeight / 64)
+            if (!int.TryParse(args[0], out int x) || x <= 0 || x >= Game1.currentLocation.Map.DisplayWidth / 64 || !int.TryParse(args[1], out int y) || y <= 0 || y >= Game1.currentLocation.Map.DisplayHeight / 64)
             {
                 Monitor.Log($"({args[0]}, {args[1]}) are not valid tile coordinates for this location.", LogLevel.Info);
                 return;
@@ -155,11 +156,11 @@ namespace ChooseRandomFarmEvent
                 return;
             }
 
-            EventData giantCrop = new EventData("giant_crop", x, y, id);
+            EventData giantCrop = new("giant_crop", x, y, id);
             giantCrop.SetUp();
             if (giantCrop.giantCrop == null)
                 return;
-            
+
             if (Config.EnforceEventConditions && !giantCrop.EnforceEventConditions(out string reason))
                 Monitor.Log($"A giant crop will not be able to spawn at ({x}, {y}) because {reason}.", LogLevel.Info);
             else
@@ -198,10 +199,7 @@ namespace ChooseRandomFarmEvent
                 location.resourceClumps.CopyTo(clumps, 0);
                 foreach (ResourceClump clump in clumps)
                 {
-                    if (clump is GiantCrop && clump.modData.ContainsKey(ModManifest.UniqueID)
-                        && ((clump.modData[ModManifest.UniqueID] == SDate.Now().AddDays(-1).ToString() && args[0] == "yesterday")
-                        || (clump.modData[ModManifest.UniqueID] == SDate.Now().ToString() && args[0] == "today")
-                        || args[0] == "all"))
+                    if (clump is GiantCrop && clump.modData.ContainsKey(ModManifest.UniqueID) && ((clump.modData[ModManifest.UniqueID] == SDate.Now().AddDays(-1).ToString() && args[0] == "yesterday") || (clump.modData[ModManifest.UniqueID] == SDate.Now().ToString() && args[0] == "today") || args[0] == "all"))
                         location.resourceClumps.Remove(clump);
                 }
             }
@@ -226,7 +224,7 @@ namespace ChooseRandomFarmEvent
             {
                 for (int y1 = y - 1; y1 <= y + 1; y1++)
                 {
-                    Vector2 v = new Vector2(x1, y1);
+                    Vector2 v = new(x1, y1);
                     if (giantCrop.location.terrainFeatures.ContainsKey(v))
                     {
                         if (giantCrop.location.terrainFeatures[v] is HoeDirt h && h.crop != null)

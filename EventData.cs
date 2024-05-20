@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+
 using Microsoft.Xna.Framework;
+
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
+
 using StardewValley;
 using StardewValley.Events;
 using StardewValley.Locations;
@@ -19,8 +22,7 @@ namespace ChooseRandomFarmEvent
 
         internal string SuccessMessage { get; set; }
         internal string FailureMessage { get; set; }
-        internal static List<string> EventTypes { get; } = new List<string>() { "capsule", "meteorite", "wild_animal_attack", "owl_statue", "fairy", "witch", 
-            "NPC_child_request", "PC_child_request", "animal_birth" };
+        internal static List<string> EventTypes { get; } = new List<string>() { "capsule", "meteorite", "wild_animal_attack", "owl_statue", "fairy", "witch", "NPC_child_request", "PC_child_request", "animal_birth" };
 
         internal Vector2 tile { get; }
         internal GameLocation location { get; }
@@ -69,10 +71,8 @@ namespace ChooseRandomFarmEvent
                     FarmEvent = new SoundInTheNightEvent(0);
                     PersonalFarmEvent = null;
                     SuccessMessage = "A strange capsule event will occur tonight.";
-                    AddCondition(() => Game1.year > 1, 
-                        "the game year is 1");
-                    AddCondition(() => !Game1.MasterPlayer.mailReceived.Contains("Got_Capsule"), 
-                        "the strange capsule event has happened before");
+                    AddCondition(() => Game1.year > 1, "the game year is 1");
+                    AddCondition(() => !Game1.MasterPlayer.mailReceived.Contains("Got_Capsule"), "the strange capsule event has happened before");
                     break;
 
                 case "meteorite":
@@ -110,14 +110,10 @@ namespace ChooseRandomFarmEvent
                     FarmEvent = null;
                     PersonalFarmEvent = new QuestionEvent(1);
                     SuccessMessage = "Your NPC spouse will request a child tonight.";
-                    AddCondition(() => Game1.player.isMarried(), 
-                        "you are not married");
-                    AddCondition(() => Game1.player.spouse != null, 
-                        "you do not have a spouse");
-                    AddCondition(() => Game1.getCharacterFromName(Game1.player.spouse).canGetPregnant(), 
-                        "your spouse cannot have children (or is a roommate)");
-                    AddCondition(() => Game1.player.currentLocation == Game1.getLocationFromName(Game1.player.homeLocation), 
-                        "you are not at home");
+                    AddCondition(() => Game1.player.getSpouse().isMarried(), "you are not married");
+                    AddCondition(() => Game1.player.spouse != null, "you do not have a spouse");
+                    AddCondition(() => Game1.getCharacterFromName(Game1.player.spouse).canGetPregnant(), "your spouse cannot have children (or is a roommate)");
+                    AddCondition(() => Game1.player.currentLocation == Game1.getLocationFromName(Game1.player.homeLocation.Value), "you are not at home");
                     break;
 
                 case "PC_child_request":
@@ -125,20 +121,13 @@ namespace ChooseRandomFarmEvent
                     PersonalFarmEvent = new QuestionEvent(3);
                     SuccessMessage = "You or your PC spouse will request a child tonight.";
                     AddCondition(() => Context.IsMultiplayer, "this is a single-player game");
-                    AddCondition(() => Game1.player.isMarried(), "you are not married");
-                    AddCondition(() => Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).HasValue, 
-                        "you are not married to another farmer");
-                    AddCondition(() => Game1.player.GetSpouseFriendship().NextBirthingDate == null, 
-                        "you are already going to have a child");
-                    AddCondition(() => Game1.otherFarmers.ContainsKey(Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value), 
-                        "your spouse is not in the game");
-                    AddCondition(() => Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation == Game1.player.currentLocation, 
-                        "you and your spouse are not in the same location");
-                    AddCondition(() => Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation == Game1.getLocationFromName(Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].homeLocation) ||
-                        Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation == Game1.getLocationFromName(Game1.player.homeLocation), 
-                        "you and your spouse are not in either of your houses");
-                    AddCondition(() => Helper.Reflection.GetMethod(typeof(Utility), "playersCanGetPregnantHere").Invoke<bool>(Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation as FarmHouse), 
-                        "you don't have a crib, your crib is already occupied, or you already have 2 children");
+                    AddCondition(() => Game1.player.isMarriedOrRoommates(), "you are not married");
+                    AddCondition(() => Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).HasValue, "you are not married to another farmer");
+                    AddCondition(() => Game1.player.GetSpouseFriendship().NextBirthingDate == null, "you are already going to have a child");
+                    AddCondition(() => Game1.otherFarmers.ContainsKey(Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value), "your spouse is not in the game");
+                    AddCondition(() => Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation == Game1.player.currentLocation, "you and your spouse are not in the same location");
+                    AddCondition(() => Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation == Game1.getLocationFromName(Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].homeLocation.Value) || Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation == Game1.getLocationFromName(Game1.player.homeLocation.Value), "you and your spouse are not in either of your houses");
+                    AddCondition(() => Helper.Reflection.GetMethod(typeof(Utility), "playersCanGetPregnantHere").Invoke<bool>(Game1.otherFarmers[Game1.player.team.GetSpouse(Game1.player.UniqueMultiplayerID).Value].currentLocation as FarmHouse), "you don't have a crib, your crib is already occupied, or you already have 2 children");
                     break;
 
                 case "animal_birth":
@@ -148,13 +137,13 @@ namespace ChooseRandomFarmEvent
                     break;
 
                 case "giant_crop":
-                    if (tile == null)
+                    if (tile == Vector2.Zero)
                         break;
 
                     // players can only specify a crop ID when conditions aren't being enforced
                     if (id > -1)
                     {
-                        giantCrop = new GiantCrop(id, new Vector2((int)tile.X - 1, (int)tile.Y - 1));
+                        giantCrop = new GiantCrop(id.ToString(), new Vector2((int)tile.X - 1, (int)tile.Y - 1));
                         giantCrop.modData.Add(ModEntry.mod.ModManifest.UniqueID, SDate.Now().ToString());
                         break;
                     }
@@ -163,10 +152,8 @@ namespace ChooseRandomFarmEvent
                     Conditions.Clear();
 
                     // first check whether there's actually a crop there; this will be a hard condition regardless of config
-                    AddCondition(() => location.terrainFeatures.ContainsKey(tile) && location.terrainFeatures[tile] is HoeDirt, 
-                        $"there is no hoe dirt at ({(int)tile.X}, {(int)tile.Y})");
-                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop != null, 
-                        $"there is no crop at ({(int)tile.X}, {(int)tile.Y})");
+                    AddCondition(() => location.terrainFeatures.ContainsKey(tile) && location.terrainFeatures[tile] is HoeDirt, $"there is no hoe dirt at ({(int)tile.X}, {(int)tile.Y})");
+                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop != null, $"there is no crop at ({(int)tile.X}, {(int)tile.Y})");
                     if (!EnforceEventConditions(out string message))
                     {
                         Monitor.Log($"Could not set giant crop spawn for tonight because {message}.", LogLevel.Info);
@@ -175,26 +162,18 @@ namespace ChooseRandomFarmEvent
 
                     SuccessMessage = $"A giant crop will spawn at ({(int)tile.X}, {(int)tile.Y}) tonight.";
 
-                    giantCrop = new GiantCrop((location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest, new Vector2((int)tile.X - 1, (int)tile.Y - 1));
+                    giantCrop = new GiantCrop((location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest.Value, new Vector2((int)tile.X - 1, (int)tile.Y - 1));
                     giantCrop.modData.Add(ModEntry.mod.ModManifest.UniqueID, SDate.Now().ToString());
 
                     if (!Helper.ModRegistry.IsLoaded("spacechase0.moregiantcrops") && !Helper.ModRegistry.IsLoaded("spacechase0.jsonassets"))
                     {
-                        AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest == 276
-                            || (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest == 190
-                            || (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest == 254, 
-                            "this type of crop cannot be giant");
+                        AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest.Value == "276" || (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest.Value == "190" || (location.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest.Value == "254", "this type of crop cannot be giant");
                     }
-                    AddCondition(() => location is Farm,
-                        "you are not in a farm location");
-                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).state.Value == 1,
-                        $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not watered");
-                    AddCondition(() => (int)(location.terrainFeatures[tile] as HoeDirt).crop.currentPhase == (location.terrainFeatures[tile] as HoeDirt).crop.phaseDays.Count - 1, 
-                        $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not fully grown");
-                    AddCondition(() => CheckGiantCropSquareForCrops(), 
-                        $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not at the center of a 3x3 square of crops of the same type");
-                    AddCondition(() => CheckGiantCropSquareForCharacters(),
-                        $"there is a character in the way");
+                    AddCondition(() => location is Farm, "you are not in a farm location");
+                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).state.Value == 1, $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not watered");
+                    AddCondition(() => (location.terrainFeatures[tile] as HoeDirt).crop.currentPhase.Value == (location.terrainFeatures[tile] as HoeDirt).crop.phaseDays.Count - 1, $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not fully grown");
+                    AddCondition(() => CheckGiantCropSquareForCrops(), $"the crop at ({(int)tile.X}, {(int)tile.Y}) is not at the center of a 3x3 square of crops of the same type");
+                    AddCondition(() => CheckGiantCropSquareForCharacters(), $"there is a character in the way");
                     break;
 
                 default:
@@ -226,15 +205,13 @@ namespace ChooseRandomFarmEvent
             //catch { return false; }
 
             GameLocation environment = location;
-                
+
             for (int x = (int)tile.X - 1; x <= (int)tile.X + 1; x++)
             {
                 for (int y = (int)tile.Y - 1; y <= (int)tile.Y + 1; y++)
                 {
-                    Vector2 v = new Vector2(x, y);
-                    if (!environment.isTileHoeDirt(v)
-                        || (environment.terrainFeatures[v] as HoeDirt).crop == null 
-                        || (environment.terrainFeatures[v] as HoeDirt).crop.indexOfHarvest != (environment.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest)
+                    Vector2 v = new(x, y);
+                    if (!environment.isTileHoeDirt(v) || (environment.terrainFeatures[v] as HoeDirt).crop == null || (environment.terrainFeatures[v] as HoeDirt).crop.indexOfHarvest != (environment.terrainFeatures[tile] as HoeDirt).crop.indexOfHarvest)
                     {
                         return false; ;
                     }
@@ -249,7 +226,7 @@ namespace ChooseRandomFarmEvent
             {
                 for (int y = (int)tile.Y - 1; y <= (int)tile.Y + 1; y++)
                 {
-                    Vector2 v = new Vector2(x, y);
+                    Vector2 v = new(x, y);
 
                     foreach (Farmer farmer in location.farmers)
                     {
