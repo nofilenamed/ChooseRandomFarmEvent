@@ -21,13 +21,18 @@ namespace ChooseRandomFarmEvent
         internal FarmEvent PersonalFarmEvent { get; set; }
 
         internal string SuccessMessage { get; set; }
+
         internal string FailureMessage { get; set; }
+
         internal static List<string> EventTypes { get; } = new List<string>() { "capsule", "meteorite", "wild_animal_attack", "owl_statue", "fairy", "witch", "NPC_child_request", "PC_child_request", "animal_birth" };
 
         internal Vector2 tile { get; }
+
         internal GameLocation location { get; }
+
         internal GiantCrop giantCrop { get; set; }
-        private int id { get; set; } = -1;
+
+        private string cropID { get; set; }
 
         private static IModHelper Helper;
         private static IMonitor Monitor;
@@ -51,12 +56,12 @@ namespace ChooseRandomFarmEvent
         }
 
         // for giant crops with specified crop ID
-        internal EventData(string n, int x, int y, int ID)
+        internal EventData(string n, int x, int y, string ID)
         {
             Name = n;
             tile = new Vector2(x, y);
             location = Game1.player.currentLocation;
-            id = ID;
+            cropID = ID;
         }
 
         internal void SetUp()
@@ -141,9 +146,9 @@ namespace ChooseRandomFarmEvent
                         break;
 
                     // players can only specify a crop ID when conditions aren't being enforced
-                    if (id > -1)
+                    if (!string.IsNullOrEmpty(cropID))
                     {
-                        giantCrop = new GiantCrop(id.ToString(), new Vector2((int)tile.X - 1, (int)tile.Y - 1));
+                        giantCrop = new GiantCrop(cropID, new Vector2((int)tile.X - 1, (int)tile.Y - 1));
                         giantCrop.modData.Add(ModEntry.mod.ModManifest.UniqueID, SDate.Now().ToString());
                         break;
                     }
@@ -230,12 +235,12 @@ namespace ChooseRandomFarmEvent
 
                     foreach (Farmer farmer in location.farmers)
                     {
-                        if (farmer.getTileLocation() == v)
+                        if (farmer.Tile == v)
                             return false;
                     }
                     foreach (Character character in location.characters)
                     {
-                        if (character.getTileLocation() == v)
+                        if (character.Tile == v)
                             return false;
                     }
                 }

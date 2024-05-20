@@ -5,6 +5,6 @@
   "Description": "Sets the farm nighttime random event via console command.",
   "UniqueID": "NFNCRFE",
   "EntryDll": "ChooseRandomFarmEvent.dll",
-  "MinimumApiVersion": "3.9.5",
+  "MinimumApiVersion": "4.0.8",
   "UpdateKeys": [ "Nexus : NONE" ]
 }

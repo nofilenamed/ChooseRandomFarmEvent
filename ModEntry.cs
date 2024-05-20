@@ -109,7 +109,7 @@ namespace ChooseRandomFarmEvent
 
         private void SpawnGiantCrop(string command, string[] args)
         {
-            int id = -1;
+            string id = null;
             bool now = false;
             if (args.Length != 2 && args.Length != 3 && args.Length != 4)
             {
@@ -118,10 +118,18 @@ namespace ChooseRandomFarmEvent
             }
             if (args.Length == 3)
             {
-                if (int.TryParse(args[2], out int ID))
-                    id = ID;
-                else if (args[2] == "now")
+
+                var arg2 = args[2];
+
+
+                if (arg2 == "now")
+                {
                     now = true;
+                }
+                else if (!string.IsNullOrEmpty(arg2))
+                {
+                    id = arg2;
+                }
                 else
                 {
                     Monitor.Log("The only accepted 3rd argument is \"now\" or an item ID number. For more info, type: help spawn_giantcrop", LogLevel.Info);
@@ -130,13 +138,17 @@ namespace ChooseRandomFarmEvent
             }
             if (args.Length == 4)
             {
-                if (int.TryParse(args[2], out int ID))
-                    id = ID;
+                var arg2 = args[2];
+                if (!string.IsNullOrEmpty(arg2))
+                {
+                    id = arg2;
+                }
                 else
                 {
                     Monitor.Log("The only accepted 3rd argument is an item ID number. For more info, type: help spawn_giantcrop", LogLevel.Info);
                     return;
                 }
+
                 if (args[3] == "now")
                     now = true;
                 else
@@ -150,7 +162,8 @@ namespace ChooseRandomFarmEvent
                 Monitor.Log($"({args[0]}, {args[1]}) are not valid tile coordinates for this location.", LogLevel.Info);
                 return;
             }
-            if (Config.EnforceEventConditions && id > -1)
+
+            if (Config.EnforceEventConditions && !string.IsNullOrEmpty(id))
             {
                 Monitor.Log("You can only choose which type of giant crop to spawn if EnforceEventConditions is false.", LogLevel.Info);
                 return;
